@@ -22,39 +22,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Unpack website
+      - name: Prepare static site
         run: |
-          mkdir -p site
-          unzip -q github-pages-field-service.zip -d site
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Configure GitHub Pages path
-        shell: bash
-        run: |
-          repo_name="${GITHUB_REPOSITORY#*/}"
-          owner_lower="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          repo_lower="$(printf '%s' "$repo_name" | tr '[:upper:]' '[:lower:]')"
-
-          if [ "$repo_lower" = "${owner_lower}.github.io" ]; then
-            pages_base_path=""
-          else
-            pages_base_path="/${repo_name}"
-          fi
-
-          printf 'BASE_PATH=%s\n' "$pages_base_path" >> "$GITHUB_ENV"
-          printf 'NEXT_PUBLIC_SITE_URL=https://%s.github.io%s\n' "$owner_lower" "$pages_base_path" >> "$GITHUB_ENV"
-
-      - name: Install dependencies
-        working-directory: site
-        run: npm ci
-
-      - name: Build website
-        working-directory: site
-        run: npm run build:verify
+          mkdir -p _site
+          cp index.html _site/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -62,7 +33,7 @@ jobs:
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:
-          path: site/out
+          path: _site
 
   deploy:
     environment:
