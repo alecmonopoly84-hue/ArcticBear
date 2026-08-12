@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1713" />
+  <meta name="description" content="ABService — выездной ремонт дорожно-строительной техники в Москве и Московской области. Выезд на объект, диагностика и ремонт." />
+  <meta name="abservice-build" content="2026-08-12-final-compact" />
+  <title>ABService — выездной сервис спецтехники в Москве и МО</title>
+  <style>
+    :root{--bg:#f4f6f3;--ink:#0b1713;--panel:#0d1d18;--acid:#c7ff39;--acid2:#b8ef2d;--white:#fff;--muted:#68756f;--line:#dfe5df;--soft:#eef2ed;--max:1160px;--radius:18px}
+    *{box-sizing:border-box} html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+    body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;padding-bottom:0}
+    a{color:inherit;text-decoration:none} button,input,textarea{font:inherit} button{cursor:pointer} img{display:block;max-width:100%}
+    .container{width:min(var(--max),calc(100% - 40px));margin:auto}
+    .topbar{position:sticky;top:0;z-index:60;background:rgba(244,246,243,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(11,23,19,.06)}
+    .topbar-inner{min-height:64px;display:flex;align-items:center;gap:24px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.035em;white-space:nowrap}
+    .brand-inline{display:flex;align-items:center;gap:9px}
+    .bear-fallback{width:35px;height:35px;border-radius:11px;background:var(--ink);display:grid;place-items:center}
+    .bear-fallback svg{width:25px;height:25px}
+    .brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.04em;margin-top:-2px}
+    .nav{display:flex;gap:20px;margin-left:auto;font-size:13px;font-weight:760;color:#51605a}
+    .nav a:hover{color:var(--ink)}
+    .top-actions{display:flex;align-items:center;gap:12px;margin-left:18px}
+    .phone{font-weight:900;white-space:nowrap}
+    .btn{border:0;border-radius:12px;min-height:46px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:850;transition:.15s ease}
+    .btn:active{transform:translateY(1px)} .btn-acid{background:var(--acid);color:var(--ink)} .btn-acid:hover{background:var(--acid2)}
+    .btn-dark{background:var(--ink);color:#fff}.btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2)}.btn-line{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    .btn-lg{min-height:54px;padding:0 22px;border-radius:14px}.btn-full{width:100%}
+
+    .hero{background:radial-gradient(circle at 83% 11%,rgba(199,255,57,.12),transparent 34%),linear-gradient(145deg,#091611,#0d1f18 63%,#11271e);color:#fff}
+    .hero-inner{min-height:600px;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(355px,.92fr);gap:48px;align-items:center;padding:66px 0}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--acid);font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.eyebrow:before{content:"";width:24px;height:2px;background:var(--acid)}
+    h1{font-size:clamp(48px,6.3vw,78px);line-height:.96;letter-spacing:-.062em;margin:18px 0 20px;max-width:760px}
+    .hero-copy{font-size:17px;line-height:1.55;color:rgba(255,255,255,.72);max-width:650px;margin:0}
+    .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+    .facts{display:flex;gap:20px;flex-wrap:wrap;margin-top:28px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12)}
+    .fact{font-size:12px;color:rgba(255,255,255,.62)} .fact strong{display:block;color:#fff;font-size:13px;margin-bottom:2px}
+
+    .quick-card{background:#fff;color:var(--ink);border-radius:20px;padding:22px;box-shadow:0 28px 70px rgba(0,0,0,.23)}
+    .kicker{font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:#75827c}
+    .quick-card h2{font-size:27px;line-height:1.05;letter-spacing:-.04em;margin:7px 0 16px}
+    .symptoms{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .symptom{border:1px solid var(--line);background:#fff;border-radius:11px;min-height:49px;padding:10px;text-align:left;font-size:12.5px;font-weight:780;color:#26332d;transition:.14s ease}
+    .symptom:hover,.symptom.selected{background:#f6ffdd;border-color:#9fc71a}.quick-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+    .coverage{background:#fff;border-bottom:1px solid var(--line)}
+    .coverage-inner{min-height:92px;display:flex;align-items:center;justify-content:space-between;gap:26px;padding:20px 0}
+    .coverage-title{font-size:17px;font-weight:850;letter-spacing:-.02em}.coverage-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+    .tags{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.tag{background:var(--soft);border-radius:999px;padding:7px 10px;font-size:11.5px;font-weight:760}
+
+    section{padding:68px 0}.section-kicker{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#728079;margin-bottom:8px}.section-title{font-size:clamp(34px,4.7vw,50px);line-height:1.03;letter-spacing:-.052em;margin:0;max-width:790px}.section-lead{font-size:15.5px;color:var(--muted);max-width:720px;margin:12px 0 0}
+    .process-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+    .process-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;min-height:190px}.num{width:32px;height:32px;border-radius:9px;background:var(--ink);color:var(--acid);display:grid;place-items:center;font-size:12px;font-weight:900}
+    .process-card h3{font-size:20px;line-height:1.1;letter-spacing:-.03em;margin:22px 0 8px}.process-card p{font-size:13.5px;color:var(--muted);margin:0}
+
+    .price-wrap{background:var(--panel);color:#fff;border-radius:23px;padding:34px;display:grid;grid-template-columns:.9fr 1.1fr;gap:32px;align-items:center}
+    .price-wrap .section-kicker{color:var(--acid)}.price-wrap .section-title{font-size:39px}.price-wrap p{font-size:13.5px;color:rgba(255,255,255,.66);margin:12px 0 0;max-width:510px}
+    .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.price-item{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:16px}.price-item span{display:block;font-size:11px;color:rgba(255,255,255,.58);margin-bottom:4px}.price-item strong{font-size:18px;letter-spacing:-.025em}
+    .price-note{grid-column:1/-1;font-size:10.5px;color:rgba(255,255,255,.5);padding-top:2px}
+
+    .proofs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px}.proof{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px}.proof-icon{width:30px;height:30px;border-radius:9px;background:var(--soft);display:grid;place-items:center;flex:0 0 auto;font-weight:900}.proof h3{font-size:15px;margin:0 0 4px;letter-spacing:-.02em}.proof p{font-size:12.5px;color:var(--muted);margin:0}
+    .fleet{margin-top:14px;background:#e9f0e8;border-radius:17px;padding:22px;display:flex;align-items:center;justify-content:space-between;gap:24px}.fleet h3{font-size:21px;letter-spacing:-.03em;margin:0 0 4px}.fleet p{font-size:13px;color:var(--muted);margin:0;max-width:680px}
+
+    .final{background:var(--ink);color:#fff;text-align:center;padding:72px 0}.final .section-kicker{color:var(--acid)}.final .section-title{margin:auto;max-width:720px}.final p{font-size:15.5px;color:rgba(255,255,255,.66);max-width:620px;margin:13px auto 24px}.final-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.final-phone{display:block;font-size:22px;font-weight:900;margin-top:18px}
+    footer{background:#07100d;color:rgba(255,255,255,.5);font-size:11.5px;padding:22px 0}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+    .mobile-cta{display:none;position:fixed;left:0;right:0;bottom:0;z-index:80;padding:7px max(9px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left));background:rgba(255,255,255,.95);backdrop-filter:blur(15px);border-top:1px solid var(--line);grid-template-columns:.82fr 1.35fr .83fr;gap:5px}.mobile-cta button,.mobile-cta a{border:0;border-radius:10px;min-height:47px;display:flex;align-items:center;justify-content:center;padding:0 6px;font-size:10.5px;font-weight:900}.m-side{background:#f0f3ef}.m-main{background:var(--acid)}
+
+    .modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(3,10,7,.65);align-items:flex-end;justify-content:center;padding:16px}.modal.open{display:flex}.sheet{width:min(560px,100%);background:#fff;border-radius:21px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.35)}.sheet-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.sheet h2{font-size:27px;line-height:1.05;letter-spacing:-.04em;margin:5px 0 0}.close{width:36px;height:36px;border:0;border-radius:10px;background:var(--soft);font-size:21px}.form-grid{display:grid;gap:9px;margin-top:17px}.field{width:100%;min-height:47px;border:1px solid var(--line);border-radius:10px;padding:0 12px;color:var(--ink);background:#fff}.field:focus{outline:2px solid rgba(199,255,57,.8);outline-offset:1px}textarea.field{padding:11px 12px;min-height:74px;resize:vertical}.sheet-note{font-size:10.5px;color:var(--muted);margin-top:9px}.upload{justify-content:flex-start}.submit-state{display:none;background:#eef8d3;border-radius:12px;padding:14px;font-size:13px;margin-top:12px}
+
+    @media(max-width:980px){.nav{display:none}.top-actions{margin-left:auto}.hero-inner{grid-template-columns:1fr;min-height:auto;gap:30px;padding:50px 0}.quick-card{max-width:620px}.coverage-inner{align-items:flex-start;flex-direction:column;gap:12px}.tags{justify-content:flex-start}.price-wrap{grid-template-columns:1fr}.process-grid,.proofs{grid-template-columns:1fr}.fleet{align-items:flex-start;flex-direction:column}}
+    @media(max-width:640px){body{padding-bottom:70px}.container{width:min(var(--max),calc(100% - 28px))}.topbar-inner{min-height:56px}.top-actions .btn{display:none}.phone{font-size:12px}.brand{font-size:14px}.hero-inner{padding:35px 0 28px;gap:24px}h1{font-size:44px;margin-top:15px}.hero-copy{font-size:14.5px}.hero-actions{display:grid;grid-template-columns:1fr;margin-top:22px}.hero-actions .btn{width:100%}.facts{margin-top:21px;padding-top:18px;gap:13px}.fact{width:calc(50% - 7px)}.quick-card{padding:17px}.quick-card h2{font-size:23px}.symptoms{grid-template-columns:1fr 1fr}.symptom{min-height:44px;padding:8px;font-size:11.5px}.coverage-inner{min-height:auto;padding:17px 0}.coverage-sub{display:none}.tags{gap:6px}.tag{font-size:10.5px;padding:6px 8px}section{padding:50px 0}.section-title{font-size:35px}.section-lead{font-size:14px}.process-grid{margin-top:23px}.process-card{min-height:auto;padding:18px}.process-card h3{font-size:18px;margin-top:17px}.price-wrap{padding:22px 18px;border-radius:18px;gap:22px}.price-wrap .section-title{font-size:33px}.price-grid{grid-template-columns:1fr 1fr}.price-item{padding:13px}.price-item strong{font-size:16px}.proofs{margin-top:22px}.proof{padding:15px}.fleet{padding:18px}.final{padding:58px 0}.final-phone{font-size:20px}.mobile-cta{display:grid}.modal{padding:7px}.sheet{border-radius:20px 20px 12px 12px;padding:18px}}
+    @media(max-width:390px){h1{font-size:40px}.section-title{font-size:32px}.price-grid{grid-template-columns:1fr}.price-note{grid-column:auto}.symptom{font-size:10.8px}}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="#top" aria-label="ABService">
+      <span class="brand-inline">
+        <span class="bear-fallback" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" role="img" aria-label="Полярный медведь">
+            <path d="M18 18 12 11l2 12M46 18l6-7-2 12" stroke="#C7FF39" stroke-width="5" stroke-linecap="round"/>
+            <path d="M15 31c0-13 8-21 17-21s17 8 17 21c0 12-8 23-17 23S15 43 15 31Z" stroke="#C7FF39" stroke-width="5"/>
+            <path d="M25 32h.1M39 32h.1" stroke="#C7FF39" stroke-width="6" stroke-linecap="round"/>
+            <path d="M27 42c3 2 7 2 10 0" stroke="#C7FF39" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span>ABService<small>выездной сервис</small></span>
+      </span>
+    </a>
+    <nav class="nav" aria-label="Основная навигация"><a href="#equipment">Что ремонтируем</a><a href="#process">Как работаем</a><a href="#price">Стоимость</a><a href="#fleet">Для парка</a></nav>
+    <div class="top-actions"><a class="phone" href="tel:88005554433">8 800 555-44-33</a><button class="btn btn-dark" data-open-lead>Вызвать бригаду</button></div>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="container hero-inner">
+    <div>
+      <div class="eyebrow">Выездной сервис на вашем объекте</div>
+      <h1>Возвращаем вашу технику в работу</h1>
+      <p class="hero-copy">Ремонтируем экскаваторы, погрузчики, бульдозеры, катки и другую спецтехнику непосредственно на объекте в Москве и Московской области.</p>
+      <div class="hero-actions"><button class="btn btn-acid btn-lg" data-open-lead>Вызвать сервисную бригаду</button><button class="btn btn-ghost btn-lg" data-open-photo>Отправить фото поломки</button></div>
+      <div class="facts"><div class="fact"><strong>Москва и МО</strong>выезд на объект</div><div class="fact"><strong>Мультибренд</strong>разные марки техники</div><div class="fact"><strong>Цена выезда известна</strong>до отправки бригады</div></div>
+    </div>
+    <div class="quick-card">
+      <div class="kicker">Быстрая заявка</div><h2>Что случилось с техникой?</h2>
+      <div class="symptoms"><button class="symptom">Не заводится</button><button class="symptom">Нет тяги / не едет</button><button class="symptom">Не работает гидравлика</button><button class="symptom">Ошибка на панели</button><button class="symptom">Перегрев</button><button class="symptom">Течь / посторонний шум</button></div>
+      <button class="btn btn-dark btn-full" id="continueLead" style="margin-top:10px">Продолжить заявку</button>
+      <div class="quick-note">Не знаете причину — опишите, что происходит. Причину определим на объекте.</div>
+    </div>
+  </div>
+</section>
+
+<div class="coverage" id="equipment"><div class="container coverage-inner"><div><div class="coverage-title">Дорожно-строительная и другая спецтехника</div><div class="coverage-sub">Экскаваторы, погрузчики, бульдозеры, катки и другая техника — ремонт на объекте.</div></div><div class="tags"><span class="tag">Экскаваторы</span><span class="tag">Погрузчики</span><span class="tag">Бульдозеры</span><span class="tag">Катки</span><span class="tag">Другая техника</span></div></div></div>
+
+<section id="process"><div class="container"><div class="section-kicker">Как работаем</div><h2 class="section-title">Три шага до понятного решения</h2><div class="process-grid">
+  <article class="process-card"><div class="num">01</div><h3>Расскажите, что произошло</h3><p>Сообщите модель техники и симптомы. Если можете — отправьте фото, видео или код ошибки.</p></article>
+  <article class="process-card"><div class="num">02</div><h3>Готовимся к выезду</h3><p>По полученной информации определяем, какой специалист нужен и что необходимо взять на объект.</p></article>
+  <article class="process-card"><div class="num">03</div><h3>Находим причину и ремонтируем</h3><p>На месте определяем неисправность, согласуем необходимые работы, выполняем ремонт и проверяем технику.</p></article>
+</div></div></section>
+
+<section id="price" style="padding-top:0"><div class="container"><div class="price-wrap"><div><div class="section-kicker">Стоимость</div><h2 class="section-title">Понятные стартовые условия</h2><p>Выезд, диагностика и работы считаются отдельными строками. Итоговый объём ремонта согласовываем после определения неисправности.</p></div><div class="price-grid">
+  <div class="price-item"><span>Выезд в пределах МКАД</span><strong>10 000 ₽</strong></div>
+  <div class="price-item"><span>За МКАД</span><strong>+60 ₽/км</strong></div>
+  <div class="price-item"><span>Выезд + первичная диагностика</span><strong>от 18 600 ₽</strong></div>
+  <div class="price-item"><span>Нормо-час</span><strong>от 4 300 ₽</strong></div>
+  <div class="price-note">Километраж за МКАД считается туда и обратно. Запчасти и расходные материалы оплачиваются отдельно.</div>
+</div></div></div></section>
+
+<section style="padding-top:0"><div class="container"><div class="section-kicker">Ответственность</div><h2 class="section-title">Понятно, что происходит и за что вы платите</h2><div class="proofs">
+  <div class="proof"><div class="proof-icon">01</div><div><h3>Выезжаем к технике</h3><p>Не нужно сначала организовывать перевозку неисправной машины в сервис.</p></div></div>
+  <div class="proof"><div class="proof-icon">02</div><div><h3>Сначала определяем причину</h3><p>На объекте понимаем, что действительно требуется ремонтировать.</p></div></div>
+  <div class="proof"><div class="proof-icon">03</div><div><h3>Согласуем до работ</h3><p>Необходимые работы и стоимость подтверждаем до их выполнения.</p></div></div>
+</div>
+<div class="fleet" id="fleet"><div><h3>Несколько машин в парке?</h3><p>Плановое обслуживание, аварийные выезды и ремонт можно объединить в единый сервисный контур для вашего парка.</p></div><button class="btn btn-dark" data-open-fleet>Обсудить обслуживание парка</button></div>
+</div></section>
+
+<section class="final"><div class="container"><div class="section-kicker">Техника стоит?</div><h2 class="section-title">Начните с одного сообщения</h2><p>Отправьте модель машины и опишите, что произошло. Мы уточним ситуацию и подготовим следующий шаг.</p><div class="final-actions"><button class="btn btn-acid btn-lg" data-open-lead>Вызвать бригаду</button><button class="btn btn-ghost btn-lg" data-open-photo>Отправить фото</button></div><a class="final-phone" href="tel:88005554433">8 800 555-44-33</a></div></section>
+</main>
+<footer><div class="container footer-inner"><span>ABService · выездной сервис</span><span>Москва и Московская область</span></div></footer>
+
+<div class="mobile-cta"><a class="m-side" href="tel:88005554433">Позвонить</a><button class="m-main" data-open-lead>Вызвать бригаду</button><button class="m-side" data-open-photo>Фото</button></div>
+
+<div class="modal" id="leadModal" aria-hidden="true"><div class="sheet"><div class="sheet-head"><div><div class="kicker">Заявка на выезд</div><h2>Что произошло с техникой?</h2></div><button class="close" data-close aria-label="Закрыть">×</button></div><form class="form-grid" id="leadForm"><input class="field" id="issueField" name="issue" placeholder="Что произошло?" required><input class="field" name="machine" placeholder="Марка и модель техники"><input class="field" name="phone" type="tel" placeholder="Телефон *" required><input class="field" name="location" placeholder="Где находится техника?"><textarea class="field" name="comment" placeholder="Комментарий"></textarea><label class="btn btn-line upload">Добавить фото / видео<input type="file" accept="image/*,video/*" multiple hidden></label><button class="btn btn-acid btn-lg btn-full" type="submit">Отправить заявку</button></form><div class="submit-state" id="leadSuccess">Форма подготовлена к подключению CRM. Пока для срочного вызова используйте телефон 8 800 555-44-33.</div><div class="sheet-note">Нажимая кнопку, вы соглашаетесь на обработку персональных данных.</div></div></div>
+
+<div class="modal" id="fleetModal" aria-hidden="true"><div class="sheet"><div class="sheet-head"><div><div class="kicker">Сервис для парка</div><h2>Обсудить обслуживание техники</h2></div><button class="close" data-close aria-label="Закрыть">×</button></div><form class="form-grid" id="fleetForm"><input class="field" name="company" placeholder="Компания"><input class="field" name="fleet" placeholder="Сколько единиц техники?"><input class="field" name="phone" type="tel" placeholder="Телефон *" required><textarea class="field" name="comment" placeholder="Какая техника и где работает?"></textarea><button class="btn btn-acid btn-lg btn-full" type="submit">Отправить запрос</button></form><div class="submit-state" id="fleetSuccess">Форма подготовлена к подключению CRM. Для связи используйте 8 800 555-44-33.</div></div></div>
+
+<script>
+  const leadModal=document.getElementById('leadModal'),fleetModal=document.getElementById('fleetModal'),issueField=document.getElementById('issueField');
+  let selectedIssue='';
+  function openModal(modal){modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
+  function closeAll(){document.querySelectorAll('.modal.open').forEach(m=>{m.classList.remove('open');m.setAttribute('aria-hidden','true')});document.body.style.overflow=''}
+  document.querySelectorAll('.symptom').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.symptom').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedIssue=b.textContent.trim();issueField.value=selectedIssue}));
+  document.querySelectorAll('[data-open-lead]').forEach(b=>b.addEventListener('click',()=>openModal(leadModal)));
+  document.querySelectorAll('[data-open-photo]').forEach(b=>b.addEventListener('click',()=>{issueField.value=selectedIssue||'Хочу отправить фото / видео неисправности';openModal(leadModal)}));
+  document.querySelectorAll('[data-open-fleet]').forEach(b=>b.addEventListener('click',()=>openModal(fleetModal)));
+  document.getElementById('continueLead').addEventListener('click',()=>{issueField.value=selectedIssue;openModal(leadModal)});
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeAll));
+  document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeAll()}));document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+  document.getElementById('leadForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('leadSuccess').style.display='block'});
+  document.getElementById('fleetForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('fleetSuccess').style.display='block'});
+</script>
+</body>
+</html>
