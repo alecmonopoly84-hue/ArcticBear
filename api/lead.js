@@ -1,5 +1,5 @@
 const ALLOWED_ORIGIN = 'https://alecmonopoly84-hue.github.io';
-const TELEGRAM_CHAT_ID = '-5375867845';
+const TELEGRAM_CHAT_ID = '-1004382574358';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -36,7 +36,8 @@ export function GET(request) {
   return json(request, {
     ok: true,
     service: 'ABService Telegram lead endpoint',
-    configured: Boolean(process.env.TELEGRAM_BOT_TOKEN)
+    configured: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+    chatConfigured: true
   });
 }
 
@@ -45,6 +46,21 @@ export function OPTIONS(request) {
     status: 204,
     headers: corsHeaders(request)
   });
+}
+
+async function sendTelegram(token, chatId, text) {
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
+    })
+  });
+  const data = await response.json();
+  return { response, data };
 }
 
 export async function POST(request) {
@@ -83,18 +99,8 @@ export async function POST(request) {
       `<b>Источник:</b> ${escapeHtml(body.source || 'ABService')}`
     ].filter(Boolean);
 
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: lines.join('\n'),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true
-      })
-    });
+    const { response: telegramResponse, data: telegramData } = await sendTelegram(token, TELEGRAM_CHAT_ID, lines.join('\n'));
 
-    const telegramData = await telegramResponse.json();
     if (!telegramResponse.ok || !telegramData.ok) {
       console.error('Telegram error:', telegramData);
       return json(request, {
