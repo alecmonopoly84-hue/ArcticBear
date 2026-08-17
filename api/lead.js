@@ -1,8 +1,10 @@
 const ALLOWED_ORIGIN = 'https://alecmonopoly84-hue.github.io';
 const TELEGRAM_CHAT_ID = '-1004382574358';
+const TELEGRAM_INTERNAL_CHAT_ID = '4382574358';
 const WEBHOOK_URL = 'https://abservice-leads-v2.vercel.app/api/lead';
 const MAX_ATTACHMENTS = 2;
 const MAX_ATTACHMENT_BYTES = 1_600_000;
+const MAX_ACTIVE_LEADS = 12;
 const STATUS_SEPARATOR = '\n\n────────\n';
 const CRM_STATE_PREFIX = 'CRMSTATE:';
 
@@ -84,26 +86,54 @@ function periodKeys(date = new Date()) {
 }
 
 function emptyStats(key) {
-  return { k: key, n: 0, s: 0, p: 0, t: 0, c: 0, x: 0, rs: 0, rc: 0, m: {} };
+  return {
+    k: key,
+    n: 0,
+    s: 0,
+    p: 0,
+    t: 0,
+    c: 0,
+    x: 0,
+    y: 0,
+    f: 0,
+    na: 0,
+    rs: 0,
+    rc: 0,
+    m: {},
+    r: {}
+  };
+}
+
+function normalizeStats(stats, key) {
+  const value = stats && typeof stats === 'object' ? stats : emptyStats(key);
+  value.k = key;
+  for (const field of ['n', 's', 'p', 't', 'c', 'x', 'y', 'f', 'na', 'rs', 'rc']) {
+    if (!Number.isFinite(value[field])) value[field] = 0;
+  }
+  if (!value.m || typeof value.m !== 'object') value.m = {};
+  if (!value.r || typeof value.r !== 'object') value.r = {};
+  return value;
 }
 
 function newCrmState(date = new Date()) {
   const keys = periodKeys(date);
   return {
-    v: 1,
+    v: 2,
     d: emptyStats(keys.day),
     w: emptyStats(keys.week),
-    mo: emptyStats(keys.month)
+    mo: emptyStats(keys.month),
+    a: []
   };
 }
 
 function normalizeCrmState(input, date = new Date()) {
   const state = input && typeof input === 'object' ? input : newCrmState(date);
   const keys = periodKeys(date);
-  if (!state.d || state.d.k !== keys.day) state.d = emptyStats(keys.day);
-  if (!state.w || state.w.k !== keys.week) state.w = emptyStats(keys.week);
-  if (!state.mo || state.mo.k !== keys.month) state.mo = emptyStats(keys.month);
-  state.v = 1;
+  state.d = normalizeStats(state.d, keys.day);
+  state.w = normalizeStats(state.w, keys.week);
+  state.mo = normalizeStats(state.mo, keys.month);
+  state.a = Array.isArray(state.a) ? state.a.slice(0, MAX_ACTIVE_LEADS) : [];
+  state.v = 2;
   return state;
 }
 
@@ -142,18 +172,70 @@ function safeFileName(value = 'attachment') {
 function telegramUserName(user = {}) {
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
   const username = user.username ? ` @${user.username}` : '';
-  return `${name || 'Сотрудник'}${username}`.slice(0, 80);
+  return `${name || 'Сотрудник'}${username}`.slice(0, 36);
+}
+
+function telegramUserKey(user = {}) {
+  return String(user.id || '');
+}
+
+function shortLabel(value = '') {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Без названия';
+}
+
+function leadMessageLink(messageId) {
+  return `https://t.me/c/${TELEGRAM_INTERNAL_CHAT_ID}/${messageId}`;
 }
 
 function keyboardFor(status) {
   if (status === 'new') {
-    return { inline_keyboard: [[{ text: '🟡 Взять в работу', callback_data: 'lead:take' }]] };
+    return {
+      inline_keyboard: [[
+        { text: '🟡 Взять в работу', callback_data: 'lead:take' }
+      ]]
+    };
   }
   if (status === 'in_work') {
-    return { inline_keyboard: [[{ text: '☎️ Связались', callback_data: 'lead:contacted' }]] };
+    return {
+      inline_keyboard: [[
+        { text: '☎️ Связались', callback_data: 'lead:contacted' },
+        { text: '📵 Не дозвонились', callback_data: 'lead:no_answer' }
+      ]]
+    };
+  }
+  if (status === 'no_answer') {
+    return {
+      inline_keyboard: [
+        [{ text: '☎️ Связались', callback_data: 'lead:contacted' }],
+        [{ text: '🟡 Вернуть в работу', callback_data: 'lead:work' }]
+      ]
+    };
   }
   if (status === 'contacted') {
-    return { inline_keyboard: [[{ text: '✅ Закрыть', callback_data: 'lead:closed' }]] };
+    return {
+      inline_keyboard: [[
+        { text: '✅ Успех', callback_data: 'lead:success' },
+        { text: '❌ Неуспех', callback_data: 'lead:fail' }
+      ]]
+    };
+  }
+  if (status === 'fail_reason') {
+    return {
+      inline_keyboard: [
+        [
+          { text: '💰 Цена', callback_data: 'lead:fail:price' },
+          { text: '📦 Нет в наличии', callback_data: 'lead:fail:stock' }
+        ],
+        [
+          { text: '⏳ Срок', callback_data: 'lead:fail:term' },
+          { text: '🚫 Передумал', callback_data: 'lead:fail:changed' }
+        ],
+        [
+          { text: '📝 Другое', callback_data: 'lead:fail:other' },
+          { text: '↩️ Назад', callback_data: 'lead:back_contacted' }
+        ]
+      ]
+    };
   }
   return { inline_keyboard: [] };
 }
@@ -161,6 +243,10 @@ function keyboardFor(status) {
 function crmKeyboard() {
   return {
     inline_keyboard: [
+      [
+        { text: '🔥 Открытые', callback_data: 'crm:open' },
+        { text: '👤 Мои', callback_data: 'crm:mine' }
+      ],
       [
         { text: '📊 Сегодня', callback_data: 'crm:today' },
         { text: '📅 Неделя', callback_data: 'crm:week' },
@@ -195,17 +281,22 @@ function extractValue(text = '', label = '') {
 }
 
 function buildStatusHtml(status, meta = {}) {
-  if (status === 'new') return '🔵 <b>Статус:</b> НОВАЯ';
-
   const lines = [];
+
+  if (status === 'new') lines.push('🔵 <b>Статус:</b> НОВАЯ');
   if (status === 'in_work') lines.push('🟡 <b>Статус:</b> В РАБОТЕ');
+  if (status === 'no_answer') lines.push('📵 <b>Статус:</b> НЕ ДОЗВОНИЛИСЬ');
   if (status === 'contacted') lines.push('☎️ <b>Статус:</b> СВЯЗАЛИСЬ');
+  if (status === 'fail_reason') lines.push('❌ <b>Результат:</b> НЕУСПЕХ — выберите причину');
+  if (status === 'success') lines.push('✅ <b>Результат:</b> УСПЕХ');
+  if (status === 'failed') lines.push(`❌ <b>Результат:</b> НЕУСПЕХ${meta.failureReason ? ` · ${escapeHtml(meta.failureReason)}` : ''}`);
   if (status === 'closed') lines.push('✅ <b>Статус:</b> ЗАКРЫТА');
 
   if (meta.owner) lines.push(`👤 <b>Ответственный:</b> ${escapeHtml(meta.owner)}`);
   if (meta.takenAt) lines.push(`🕒 <b>Взята:</b> ${escapeHtml(meta.takenAt)}`);
   if (meta.contactedAt) lines.push(`☎️ <b>Связались:</b> ${escapeHtml(meta.contactedAt)}`);
-  if (meta.closedAt) lines.push(`✅ <b>Закрыта:</b> ${escapeHtml(meta.closedAt)}`);
+  if (meta.noAnswerAt) lines.push(`📵 <b>Не дозвонились:</b> ${escapeHtml(meta.noAnswerAt)}`);
+  if (meta.closedAt) lines.push(`🏁 <b>Завершена:</b> ${escapeHtml(meta.closedAt)}`);
   return lines.join('\n');
 }
 
@@ -219,8 +310,12 @@ function parseLeadCreatedAt(text = '') {
 function managerBucket(stats, manager) {
   if (!manager) return null;
   if (!stats.m || typeof stats.m !== 'object') stats.m = {};
-  if (!stats.m[manager]) stats.m[manager] = { t: 0, c: 0, x: 0 };
-  return stats.m[manager];
+  if (!stats.m[manager]) stats.m[manager] = { t: 0, c: 0, x: 0, y: 0, f: 0, na: 0 };
+  const bucket = stats.m[manager];
+  for (const field of ['t', 'c', 'x', 'y', 'f', 'na']) {
+    if (!Number.isFinite(bucket[field])) bucket[field] = 0;
+  }
+  return bucket;
 }
 
 function applyCrmEvent(stats, event) {
@@ -239,6 +334,11 @@ function applyCrmEvent(stats, event) {
     bucket.t += 1;
   }
 
+  if (event.type === 'no_answer') {
+    stats.na += 1;
+    bucket.na += 1;
+  }
+
   if (event.type === 'contacted') {
     stats.c += 1;
     bucket.c += 1;
@@ -248,10 +348,51 @@ function applyCrmEvent(stats, event) {
     }
   }
 
+  if (event.type === 'success') {
+    stats.y += 1;
+    stats.x += 1;
+    bucket.y += 1;
+    bucket.x += 1;
+  }
+
+  if (event.type === 'failed') {
+    stats.f += 1;
+    stats.x += 1;
+    bucket.f += 1;
+    bucket.x += 1;
+    const reason = event.reason || 'Другое';
+    stats.r[reason] = (stats.r[reason] || 0) + 1;
+  }
+
   if (event.type === 'closed') {
     stats.x += 1;
     bucket.x += 1;
   }
+}
+
+function updateActiveLeads(state, event) {
+  if (!Array.isArray(state.a)) state.a = [];
+
+  if (event.type === 'new' && event.lead) {
+    state.a = [event.lead, ...state.a.filter(item => item.i !== event.lead.i)]
+      .slice(0, MAX_ACTIVE_LEADS);
+    return;
+  }
+
+  if (!event.leadId) return;
+  const index = state.a.findIndex(item => String(item.i) === String(event.leadId));
+  if (index < 0) return;
+
+  if (['success', 'failed', 'closed'].includes(event.type)) {
+    state.a.splice(index, 1);
+    return;
+  }
+
+  const lead = state.a[index];
+  if (event.manager) lead.o = shortLabel(event.manager);
+  if (event.userKey) lead.u = String(event.userKey);
+  if (event.status) lead.st = event.status;
+  state.a[index] = lead;
 }
 
 function recordCrmEvent(state, event) {
@@ -259,6 +400,7 @@ function recordCrmEvent(state, event) {
   applyCrmEvent(normalized.d, event);
   applyCrmEvent(normalized.w, event);
   applyCrmEvent(normalized.mo, event);
+  updateActiveLeads(normalized, event);
   return normalized;
 }
 
@@ -272,12 +414,16 @@ function averageContactText(stats) {
 }
 
 function periodSummary(stats) {
-  return `лиды <b>${stats.n}</b> · 🛠 ${stats.s} · 🧩 ${stats.p} · ✅ ${stats.x}`;
+  return `лиды <b>${stats.n}</b> · 🛠 ${stats.s} · 🧩 ${stats.p} · ✅ ${stats.y} · ❌ ${stats.f}`;
 }
 
 function topManagers(stats, limit = 5) {
   return Object.entries(stats.m || {})
-    .map(([name, value]) => ({ name, ...value, score: value.t + value.c + value.x }))
+    .map(([name, value]) => ({
+      name,
+      ...value,
+      score: (value.t || 0) + (value.c || 0) + (value.x || 0) + (value.na || 0)
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
@@ -285,10 +431,12 @@ function topManagers(stats, limit = 5) {
 function renderDashboard(state) {
   const normalized = normalizeCrmState(state);
   const managers = topManagers(normalized.d, 3);
+  const activeCount = normalized.a.length;
   const lines = [
-    '📊 <b>ABSERVICE CRM · СВОДКА</b>',
+    '📊 <b>ABSERVICE CRM · ПУЛЬТ</b>',
     `<i>Обновлено: ${escapeHtml(formatMoscowTime())}</i>`,
     '',
+    `🔥 Активных в быстром списке: <b>${activeCount}</b>`,
     `Сегодня: ${periodSummary(normalized.d)}`,
     `Неделя: ${periodSummary(normalized.w)}`,
     `Месяц: ${periodSummary(normalized.mo)}`,
@@ -299,11 +447,11 @@ function renderDashboard(state) {
   if (managers.length) {
     lines.push('', '<b>Менеджеры сегодня:</b>');
     managers.forEach(item => {
-      lines.push(`• ${escapeHtml(item.name)}: взял ${item.t} · связался ${item.c} · закрыл ${item.x}`);
+      lines.push(`• ${escapeHtml(item.name)}: взял ${item.t || 0} · контакт ${item.c || 0} · ✅ ${item.y || 0} · ❌ ${item.f || 0}`);
     });
   }
 
-  lines.push('', '<i>Отчёты — кнопками ниже.</i>');
+  lines.push('', '<i>Работа и отчёты — кнопками ниже.</i>');
   lines.push(`<tg-spoiler>${CRM_STATE_PREFIX}${encodeCrmState(normalized)}</tg-spoiler>`);
   return lines.join('\n');
 }
@@ -315,17 +463,28 @@ function reportSection(title, stats) {
     `• Сервис: ${stats.s}`,
     `• Запчасти: ${stats.p}`,
     `Взяты в работу: ${stats.t}`,
+    `Не дозвонились: ${stats.na}`,
     `Связались: ${stats.c}`,
-    `Закрыты: ${stats.x}`,
-    `Открыты / не закрыты: ${Math.max(0, stats.n - stats.x)}`,
+    `✅ Успех: <b>${stats.y}</b>`,
+    `❌ Неуспех: <b>${stats.f}</b>`,
+    `Завершены всего: ${stats.x}`,
+    `Открыты / не завершены: ${Math.max(0, stats.n - stats.x)}`,
     `Среднее время до контакта: <b>${escapeHtml(averageContactText(stats))}</b>`
   ];
+
+  const reasons = Object.entries(stats.r || {}).sort((a, b) => b[1] - a[1]);
+  if (reasons.length) {
+    lines.push('<b>Причины неуспеха:</b>');
+    reasons.slice(0, 6).forEach(([reason, count]) => {
+      lines.push(`• ${escapeHtml(reason)} — ${count}`);
+    });
+  }
 
   const managers = topManagers(stats, 8);
   if (managers.length) {
     lines.push('<b>По менеджерам:</b>');
     managers.forEach(item => {
-      lines.push(`• ${escapeHtml(item.name)} — взял ${item.t}, связался ${item.c}, закрыл ${item.x}`);
+      lines.push(`• ${escapeHtml(item.name)} — взял ${item.t || 0}, контакт ${item.c || 0}, ✅ ${item.y || 0}, ❌ ${item.f || 0}`);
     });
   }
   return lines.join('\n');
@@ -345,17 +504,60 @@ function renderReport(state, scope = 'all') {
   ].join('\n\n────────\n\n');
 }
 
+function statusLabel(status) {
+  if (status === 'new') return '🔵 Новая';
+  if (status === 'in_work') return '🟡 В работе';
+  if (status === 'no_answer') return '📵 Не дозвонились';
+  if (status === 'contacted') return '☎️ Связались';
+  if (status === 'fail_reason') return '❌ Уточнение';
+  return '🟡 Активна';
+}
+
+function renderActiveLeads(state, title, userKey = '') {
+  const normalized = normalizeCrmState(state);
+  let leads = normalized.a;
+  if (userKey) leads = leads.filter(item => String(item.u || '') === String(userKey));
+
+  const lines = [
+    `${userKey ? '👤' : '🔥'} <b>${escapeHtml(title)}</b>`,
+    `<i>${escapeHtml(formatMoscowTime())}</i>`,
+    ''
+  ];
+
+  if (!leads.length) {
+    lines.push(userKey ? 'У вас сейчас нет активных заявок.' : 'Активных заявок в быстром списке нет.');
+    return lines.join('\n');
+  }
+
+  leads.slice(0, MAX_ACTIVE_LEADS).forEach(item => {
+    const typeIcon = item.k === 'p' ? '🧩' : '🛠';
+    const owner = item.o ? ` · ${escapeHtml(item.o)}` : '';
+    lines.push(
+      `${typeIcon} <a href="${leadMessageLink(item.i)}">#${item.i}</a> · ${escapeHtml(item.q || 'Заявка')}`,
+      `   ${statusLabel(item.st)}${owner}`
+    );
+  });
+
+  lines.push('', `<i>Показаны последние ${Math.min(leads.length, MAX_ACTIVE_LEADS)} активных заявок.</i>`);
+  return lines.join('\n');
+}
+
 function renderCrmHelp() {
   return [
     '❓ <b>ABSERVICE CRM · КАК РАБОТАТЬ</b>',
     '',
-    '1. Новая заявка автоматически приходит в группу.',
-    '2. Менеджер нажимает <b>«🟡 Взять в работу»</b>.',
-    '3. После разговора с клиентом — <b>«☎️ Связались»</b>.',
-    '4. Когда работа по лиду завершена — <b>«✅ Закрыть»</b>.',
-    '5. Отчёты открываются кнопками в закреплённой CRM-сводке.',
+    '<b>По заявке:</b>',
+    '1. Нажмите «🟡 Взять в работу».',
+    '2. После попытки контакта — «☎️ Связались» или «📵 Не дозвонились».',
+    '3. После контакта завершите лид как «✅ Успех» или «❌ Неуспех».',
+    '4. Для неуспеха выберите причину — цена, наличие, срок, передумал или другое.',
     '',
-    '<i>Команды /report остаются как резервный способ.</i>'
+    '<b>В закреплённом пульте:</b>',
+    '🔥 Открытые — последние активные заявки.',
+    '👤 Мои — активные заявки, взятые вами.',
+    '📊 Сегодня / 📅 Неделя / 🗓 Месяц — отчёты.',
+    '',
+    '<i>Команда /report остаётся резервным способом.</i>'
   ].join('\n');
 }
 
@@ -425,7 +627,7 @@ async function createCrmDashboard(token) {
     await sendTelegramMessage(
       token,
       TELEGRAM_CHAT_ID,
-      '⚠️ <b>Нужно один раз закрепить сообщение «ABSERVICE CRM · СВОДКА».</b> Без закрепления бот не сможет сохранять отчётность между заявками.'
+      '⚠️ <b>Нужно один раз закрепить сообщение «ABSERVICE CRM · ПУЛЬТ».</b> Без закрепления бот не сможет сохранять отчётность между заявками.'
     );
   }
   return { ok: true, messageId, state, pinned: pin.ok };
@@ -507,8 +709,8 @@ async function handleCommand(token, message) {
       token,
       TELEGRAM_CHAT_ID,
       crm.pinned === false
-        ? '📊 CRM-сводка создана. <b>Закрепите её вручную</b>. Кнопки отчётов уже доступны под сводкой.'
-        : '📊 <b>CRM-сводка активирована.</b> Отчёты доступны кнопками под закреплённым сообщением.'
+        ? '📊 CRM-пульт создан. <b>Закрепите его вручную</b>.'
+        : '📊 <b>CRM-пульт активирован.</b> Работа и отчёты доступны кнопками под закреплённым сообщением.'
     );
     return { ok: true, command: 'crm_init' };
   }
@@ -549,6 +751,24 @@ async function handleCrmCallback(token, callback, action) {
     return { ok: sent.ok, action: 'help' };
   }
 
+  if (action === 'crm:open') {
+    const sent = await sendTelegramMessage(
+      token,
+      TELEGRAM_CHAT_ID,
+      renderActiveLeads(state, 'ОТКРЫТЫЕ ЗАЯВКИ')
+    );
+    return { ok: sent.ok, action: 'open' };
+  }
+
+  if (action === 'crm:mine') {
+    const sent = await sendTelegramMessage(
+      token,
+      TELEGRAM_CHAT_ID,
+      renderActiveLeads(state, 'МОИ АКТИВНЫЕ ЗАЯВКИ', telegramUserKey(callback.from))
+    );
+    return { ok: sent.ok, action: 'mine' };
+  }
+
   const scopes = {
     'crm:today': 'today',
     'crm:week': 'week',
@@ -560,6 +780,17 @@ async function handleCrmCallback(token, callback, action) {
 
   const sent = await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderReport(state, scope));
   return { ok: sent.ok, action: 'report', scope };
+}
+
+function failureReasonFromAction(action) {
+  const reasons = {
+    'lead:fail:price': 'Цена',
+    'lead:fail:stock': 'Нет в наличии',
+    'lead:fail:term': 'Срок',
+    'lead:fail:changed': 'Передумал',
+    'lead:fail:other': 'Другое'
+  };
+  return reasons[action] || '';
 }
 
 async function handleCallback(token, callback) {
@@ -587,14 +818,17 @@ async function handleCallback(token, callback) {
   const owner = extractValue(statusText, 'Ответственный:');
   const takenAt = extractValue(statusText, 'Взята:');
   const contactedAt = extractValue(statusText, 'Связались:');
+  const noAnswerAt = extractValue(statusText, 'Не дозвонились:');
 
   let nextStatus;
-  let eventType;
+  let eventType = '';
+  let reason = '';
   const meta = {
     owner,
     takenAt,
     contactedAt,
-    closedAt: extractValue(statusText, 'Закрыта:')
+    noAnswerAt,
+    closedAt: extractValue(statusText, 'Завершена:') || extractValue(statusText, 'Закрыта:')
   };
 
   if (action === 'lead:take') {
@@ -602,18 +836,41 @@ async function handleCallback(token, callback) {
     eventType = 'take';
     meta.owner = telegramUserName(callback.from);
     meta.takenAt = now;
+  } else if (action === 'lead:work') {
+    nextStatus = 'in_work';
+    meta.owner = meta.owner || telegramUserName(callback.from);
+  } else if (action === 'lead:no_answer') {
+    nextStatus = 'no_answer';
+    eventType = 'no_answer';
+    meta.owner = meta.owner || telegramUserName(callback.from);
+    meta.noAnswerAt = now;
   } else if (action === 'lead:contacted') {
     nextStatus = 'contacted';
     eventType = 'contacted';
     if (!meta.owner) meta.owner = telegramUserName(callback.from);
     if (!meta.takenAt) meta.takenAt = now;
     meta.contactedAt = now;
+  } else if (action === 'lead:fail') {
+    nextStatus = 'fail_reason';
+    meta.owner = meta.owner || telegramUserName(callback.from);
+  } else if (action === 'lead:back_contacted') {
+    nextStatus = 'contacted';
+  } else if (action === 'lead:success') {
+    nextStatus = 'success';
+    eventType = 'success';
+    meta.owner = meta.owner || telegramUserName(callback.from);
+    meta.closedAt = now;
+  } else if (failureReasonFromAction(action)) {
+    nextStatus = 'failed';
+    eventType = 'failed';
+    reason = failureReasonFromAction(action);
+    meta.failureReason = reason;
+    meta.owner = meta.owner || telegramUserName(callback.from);
+    meta.closedAt = now;
   } else if (action === 'lead:closed') {
     nextStatus = 'closed';
     eventType = 'closed';
-    if (!meta.owner) meta.owner = telegramUserName(callback.from);
-    if (!meta.takenAt) meta.takenAt = now;
-    if (!meta.contactedAt) meta.contactedAt = now;
+    meta.owner = meta.owner || telegramUserName(callback.from);
     meta.closedAt = now;
   } else {
     return { ok: false, error: 'Unknown lead action' };
@@ -634,13 +891,21 @@ async function handleCallback(token, callback) {
     return { ok: false, error: edit.data?.description || 'Unable to update lead status' };
   }
 
-  const event = { type: eventType, manager: meta.owner };
+  const event = {
+    type: eventType || 'status',
+    manager: meta.owner,
+    userKey: telegramUserKey(callback.from),
+    leadId: message.message_id,
+    status: nextStatus
+  };
+
   if (eventType === 'contacted') {
     const createdAt = parseLeadCreatedAt(baseText);
     if (createdAt) event.responseMinutes = Math.max(0, (Date.now() - createdAt.getTime()) / 60000);
   }
-  await recordEventIfCrmActive(token, event);
+  if (eventType === 'failed') event.reason = reason;
 
+  await recordEventIfCrmActive(token, event);
   return { ok: true, status: nextStatus };
 }
 
@@ -673,6 +938,7 @@ export async function GET(request) {
     workflow: true,
     reports: true,
     reportButtons: true,
+    crmV2: true,
     workflowConfigured,
     crmConfigured,
     webhookError
@@ -760,9 +1026,18 @@ export async function POST(request) {
       }, 502);
     }
 
+    const messageId = telegram.data?.result?.message_id;
     const crm = await initializeCrmIfNeeded(token);
     if (crm.ok) {
-      const nextState = recordCrmEvent(crm.state, { type: 'new', kind });
+      const lead = {
+        i: messageId,
+        k: isParts ? 'p' : 's',
+        st: 'new',
+        u: '',
+        o: '',
+        q: shortLabel(body.name || body.machine || body.part || phone)
+      };
+      const nextState = recordCrmEvent(crm.state, { type: 'new', kind, lead });
       await saveCrmState(token, crm.messageId, nextState);
     }
 
@@ -791,6 +1066,7 @@ export async function POST(request) {
       workflow: true,
       reports: true,
       reportButtons: true,
+      crmV2: true,
       crmTracked: Boolean(crm.ok),
       attachmentsRequested: attachments.length,
       attachmentsSent,
