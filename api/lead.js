@@ -319,7 +319,7 @@ export async function POST(request) {
       ? body.attachments.slice(0, MAX_ATTACHMENTS)
       : [];
 
-    const lines = [
+    const leadLines = [
       `${icon} <b>НОВАЯ ЗАЯВКА · ${label}</b>`,
       `<i>ABService · ${timestamp}</i>`,
       '',
@@ -333,15 +333,15 @@ export async function POST(request) {
       isParts && body.part ? `📦 <b>Запчасть:</b> ${escapeHtml(body.part)}` : null,
       attachments.length ? `📷 <b>Вложений:</b> ${attachments.length}` : null,
       '',
-      `🌐 <b>Источник:</b> ${escapeHtml(isParts ? 'ABService · Запчасти' : 'ABService · Сервис')}`,
-      STATUS_SEPARATOR.trimStart(),
-      buildStatusHtml('new')
-    ].filter(Boolean);
+      `🌐 <b>Источник:</b> ${escapeHtml(isParts ? 'ABService · Запчасти' : 'ABService · Сервис')}`
+    ].filter(line => line !== null && line !== undefined);
+
+    const leadText = `${leadLines.join('\n')}${STATUS_SEPARATOR}${buildStatusHtml('new')}`;
 
     const telegram = await sendTelegramMessage(
       token,
       TELEGRAM_CHAT_ID,
-      lines.join('\n'),
+      leadText,
       keyboardFor('new')
     );
 
