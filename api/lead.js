@@ -9,64 +9,65 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-async function telegramJson(token, method, payload) {
-  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error(data.description || `Telegram ${method} failed`);
-  return data;
-}
+function corsHeaders(request) {
+  const origin = request.headers.get('origin') || '';
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin'
+  };
 
-async function telegramFile(token, attachment, caption) {
-  const buffer = Buffer.from(attachment.data || '', 'base64');
-  if (!buffer.length || buffer.length > 3_000_000) return;
-
-  const type = attachment.type || 'application/octet-stream';
-  const isImage = type.startsWith('image/');
-  const form = new FormData();
-  form.append('chat_id', TELEGRAM_CHAT_ID);
-  form.append('caption', caption.slice(0, 900));
-  form.append(isImage ? 'photo' : 'document', new Blob([buffer], { type }), attachment.name || 'attachment');
-
-  const response = await fetch(`https://api.telegram.org/bot${token}/${isImage ? 'sendPhoto' : 'sendDocument'}`, {
-    method: 'POST',
-    body: form
-  });
-  const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error(data.description || 'Telegram file upload failed');
-}
-
-module.exports = async function handler(req, res) {
-  const origin = req.headers.origin || '';
   if (origin === ALLOWED_ORIGIN || origin.startsWith('http://localhost:')) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    headers['Access-Control-Allow-Origin'] = origin;
   }
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  return headers;
+}
+
+function json(request, body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: corsHeaders(request)
+  });
+}
+
+export function GET(request) {
+  return json(request, {
+    ok: true,
+    service: 'ABService Telegram lead endpoint',
+    configured: Boolean(process.env.TELEGRAM_BOT_TOKEN)
+  });
+}
+
+export function OPTIONS(request) {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(request)
+  });
+}
+
+export async function POST(request) {
+  const origin = request.headers.get('origin') || '';
   if (origin && origin !== ALLOWED_ORIGIN && !origin.startsWith('http://localhost:')) {
-    return res.status(403).json({ ok: false, error: 'Origin not allowed' });
+    return json(request, { ok: false, error: 'Origin not allowed' }, 403);
   }
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
-    console.error('TELEGRAM_BOT_TOKEN is not configured');
-    return res.status(503).json({ ok: false, error: 'Integration is not configured' });
+    return json(request, { ok: false, error: 'TELEGRAM_BOT_TOKEN is not configured' }, 503);
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const body = await request.json();
     const phone = String(body.phone || '').trim();
-    if (phone.length < 5) return res.status(400).json({ ok: false, error: 'Phone is required' });
+    if (phone.length < 5) {
+      return json(request, { ok: false, error: 'Phone is required' }, 400);
+    }
 
     const kind = body.kind === 'parts' ? 'parts' : 'service';
     const title = kind === 'parts' ? '🧩 Новая заявка на запчасть' : '🛠 Новая заявка на сервис';
+
     const lines = [
       `<b>${title}</b>`,
       '',
@@ -82,21 +83,29 @@ module.exports = async function handler(req, res) {
       `<b>Источник:</b> ${escapeHtml(body.source || 'ABService')}`
     ].filter(Boolean);
 
-    await telegramJson(token, 'sendMessage', {
-      chat_id: TELEGRAM_CHAT_ID,
-      text: lines.join('\n'),
-      parse_mode: 'HTML',
-      disable_web_page_preview: true
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: lines.join('\n'),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
     });
 
-    const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 3) : [];
-    for (const attachment of attachments) {
-      await telegramFile(token, attachment, kind === 'parts' ? 'Фото к заявке на запчасть' : 'Фото/файл к сервисной заявке');
+    const telegramData = await telegramResponse.json();
+    if (!telegramResponse.ok || !telegramData.ok) {
+      console.error('Telegram error:', telegramData);
+      return json(request, {
+        ok: false,
+        error: telegramData.description || 'Telegram request failed'
+      }, 502);
     }
 
-    return res.status(200).json({ ok: true });
+    return json(request, { ok: true });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ ok: false, error: 'Unable to send lead' });
+    console.error('Lead endpoint error:', error);
+    return json(request, { ok: false, error: 'Unable to send lead' }, 500);
   }
-};
+}
