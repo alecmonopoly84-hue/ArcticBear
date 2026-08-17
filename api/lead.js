@@ -158,6 +158,20 @@ function keyboardFor(status) {
   return { inline_keyboard: [] };
 }
 
+function crmKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📊 Сегодня', callback_data: 'crm:today' },
+        { text: '📅 Неделя', callback_data: 'crm:week' },
+        { text: '🗓 Месяц', callback_data: 'crm:month' }
+      ],
+      [{ text: '📈 Полный отчёт', callback_data: 'crm:all' }],
+      [{ text: '❓ Как пользоваться', callback_data: 'crm:help' }]
+    ]
+  };
+}
+
 function formatBaseLeadHtml(plainText = '') {
   return String(plainText)
     .split('\n')
@@ -289,7 +303,7 @@ function renderDashboard(state) {
     });
   }
 
-  lines.push('', '<i>Команда отчёта: /report</i>');
+  lines.push('', '<i>Отчёты — кнопками ниже.</i>');
   lines.push(`<tg-spoiler>${CRM_STATE_PREFIX}${encodeCrmState(normalized)}</tg-spoiler>`);
   return lines.join('\n');
 }
@@ -329,6 +343,20 @@ function renderReport(state, scope = 'all') {
     reportSection('ТЕКУЩАЯ НЕДЕЛЯ', normalized.w),
     reportSection('ТЕКУЩИЙ МЕСЯЦ', normalized.mo)
   ].join('\n\n────────\n\n');
+}
+
+function renderCrmHelp() {
+  return [
+    '❓ <b>ABSERVICE CRM · КАК РАБОТАТЬ</b>',
+    '',
+    '1. Новая заявка автоматически приходит в группу.',
+    '2. Менеджер нажимает <b>«🟡 Взять в работу»</b>.',
+    '3. После разговора с клиентом — <b>«☎️ Связались»</b>.',
+    '4. Когда работа по лиду завершена — <b>«✅ Закрыть»</b>.',
+    '5. Отчёты открываются кнопками в закреплённой CRM-сводке.',
+    '',
+    '<i>Команды /report остаются как резервный способ.</i>'
+  ].join('\n');
 }
 
 async function telegramJson(token, method, payload) {
@@ -389,7 +417,7 @@ async function pinCrmMessage(token, messageId) {
 
 async function createCrmDashboard(token) {
   const state = newCrmState();
-  const sent = await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderDashboard(state));
+  const sent = await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderDashboard(state), crmKeyboard());
   if (!sent.ok) return { ok: false, error: sent.data?.description || 'Unable to create CRM dashboard' };
   const messageId = sent.data?.result?.message_id;
   const pin = await pinCrmMessage(token, messageId);
@@ -409,7 +437,8 @@ async function saveCrmState(token, messageId, state) {
     message_id: messageId,
     text: renderDashboard(state),
     parse_mode: 'HTML',
-    disable_web_page_preview: true
+    disable_web_page_preview: true,
+    reply_markup: crmKeyboard()
   });
   if (!edit.ok) {
     console.error('CRM dashboard edit error:', edit.data);
@@ -473,12 +502,13 @@ async function handleCommand(token, message) {
   if (command === '/crm_init') {
     const crm = await initializeCrmIfNeeded(token);
     if (!crm.ok) return { ok: false, error: crm.error || 'CRM initialization failed' };
+    await saveCrmState(token, crm.messageId, crm.state);
     await sendTelegramMessage(
       token,
       TELEGRAM_CHAT_ID,
       crm.pinned === false
-        ? '📊 CRM-сводка создана. <b>Закрепите её вручную</b>, затем используйте /report.'
-        : '📊 <b>CRM-сводка активирована.</b> Новые заявки и изменения статусов теперь попадают в отчёт. Команда: /report'
+        ? '📊 CRM-сводка создана. <b>Закрепите её вручную</b>. Кнопки отчётов уже доступны под сводкой.'
+        : '📊 <b>CRM-сводка активирована.</b> Отчёты доступны кнопками под закреплённым сообщением.'
     );
     return { ok: true, command: 'crm_init' };
   }
@@ -493,6 +523,8 @@ async function handleCommand(token, message) {
         TELEGRAM_CHAT_ID,
         'ℹ️ Учёт отчётности создан сейчас. Статистика начнёт накапливаться с этого момента.'
       );
+    } else {
+      await saveCrmState(token, crm.messageId, crm.state);
     }
     const reportScope = ['today', 'week', 'month'].includes(scope) ? scope : 'all';
     await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderReport(crm.state, reportScope));
@@ -500,6 +532,34 @@ async function handleCommand(token, message) {
   }
 
   return { ok: true, ignored: true };
+}
+
+async function handleCrmCallback(token, callback, action) {
+  const message = callback?.message;
+  let state = decodeCrmState(message?.text || '');
+
+  if (!state) {
+    const crm = await getPinnedCrm(token);
+    if (!crm.ok) return { ok: false, error: 'CRM dashboard unavailable' };
+    state = crm.state;
+  }
+
+  if (action === 'crm:help') {
+    const sent = await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderCrmHelp());
+    return { ok: sent.ok, action: 'help' };
+  }
+
+  const scopes = {
+    'crm:today': 'today',
+    'crm:week': 'week',
+    'crm:month': 'month',
+    'crm:all': 'all'
+  };
+  const scope = scopes[action];
+  if (!scope) return { ok: false, error: 'Unknown CRM action' };
+
+  const sent = await sendTelegramMessage(token, TELEGRAM_CHAT_ID, renderReport(state, scope));
+  return { ok: sent.ok, action: 'report', scope };
 }
 
 async function handleCallback(token, callback) {
@@ -513,9 +573,13 @@ async function handleCallback(token, callback) {
 
   const verify = await telegramJson(token, 'answerCallbackQuery', {
     callback_query_id: callbackId,
-    text: 'Принято'
+    text: action.startsWith('crm:') ? 'Готово' : 'Принято'
   });
   if (!verify.ok) return { ok: false, error: verify.data?.description || 'Invalid callback query' };
+
+  if (action.startsWith('crm:')) {
+    return handleCrmCallback(token, callback, action);
+  }
 
   const fullText = String(message.text || '');
   const [baseText, statusText = ''] = fullText.split(STATUS_SEPARATOR);
@@ -597,6 +661,7 @@ export async function GET(request) {
     }
     const crm = await getPinnedCrm(token);
     crmConfigured = crm.ok;
+    if (crm.ok) await saveCrmState(token, crm.messageId, crm.state);
   }
 
   return json(request, {
@@ -607,6 +672,7 @@ export async function GET(request) {
     attachments: true,
     workflow: true,
     reports: true,
+    reportButtons: true,
     workflowConfigured,
     crmConfigured,
     webhookError
@@ -724,6 +790,7 @@ export async function POST(request) {
       ok: true,
       workflow: true,
       reports: true,
+      reportButtons: true,
       crmTracked: Boolean(crm.ok),
       attachmentsRequested: attachments.length,
       attachmentsSent,
