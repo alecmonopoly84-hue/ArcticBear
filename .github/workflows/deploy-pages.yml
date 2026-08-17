@@ -25,7 +25,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site/parts _site/media
-          cp index.html site.css site.js parts-promo.css parts.css parts.js abservice-logo.svg _site/
+          cp index.html site.css site.js parts-promo.css parts.css parts.js refinement.css abservice-logo.svg _site/
           cp parts/index.html _site/parts/index.html
           cp media/*.jpg _site/media/
 
