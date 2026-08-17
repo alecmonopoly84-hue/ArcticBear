@@ -24,8 +24,9 @@ jobs:
 
       - name: Prepare static site
         run: |
-          mkdir -p _site
-          cp index.html site.css site.js _site/
+          mkdir -p _site/parts
+          cp index.html site.css site.js parts-promo.css parts.css parts.js abservice-logo.svg _site/
+          cp parts/index.html _site/parts/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
