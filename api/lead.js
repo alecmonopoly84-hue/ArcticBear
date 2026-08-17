@@ -1,4 +1,5 @@
-const DEFAULT_ORIGIN = 'https://alecmonopoly84-hue.github.io';
+const ALLOWED_ORIGIN = 'https://alecmonopoly84-hue.github.io';
+const TELEGRAM_CHAT_ID = '-5375867845';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -19,14 +20,14 @@ async function telegramJson(token, method, payload) {
   return data;
 }
 
-async function telegramFile(token, chatId, attachment, caption) {
+async function telegramFile(token, attachment, caption) {
   const buffer = Buffer.from(attachment.data || '', 'base64');
   if (!buffer.length || buffer.length > 3_000_000) return;
 
   const type = attachment.type || 'application/octet-stream';
   const isImage = type.startsWith('image/');
   const form = new FormData();
-  form.append('chat_id', String(chatId));
+  form.append('chat_id', TELEGRAM_CHAT_ID);
   form.append('caption', caption.slice(0, 900));
   form.append(isImage ? 'photo' : 'document', new Blob([buffer], { type }), attachment.name || 'attachment');
 
@@ -39,9 +40,8 @@ async function telegramFile(token, chatId, attachment, caption) {
 }
 
 module.exports = async function handler(req, res) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || DEFAULT_ORIGIN;
   const origin = req.headers.origin || '';
-  if (origin === allowedOrigin || origin.startsWith('http://localhost:')) {
+  if (origin === ALLOWED_ORIGIN || origin.startsWith('http://localhost:')) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Vary', 'Origin');
@@ -50,14 +50,13 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
-  if (origin && origin !== allowedOrigin && !origin.startsWith('http://localhost:')) {
+  if (origin && origin !== ALLOWED_ORIGIN && !origin.startsWith('http://localhost:')) {
     return res.status(403).json({ ok: false, error: 'Origin not allowed' });
   }
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) {
-    console.error('Telegram environment variables are not configured');
+  if (!token) {
+    console.error('TELEGRAM_BOT_TOKEN is not configured');
     return res.status(503).json({ ok: false, error: 'Integration is not configured' });
   }
 
@@ -84,7 +83,7 @@ module.exports = async function handler(req, res) {
     ].filter(Boolean);
 
     await telegramJson(token, 'sendMessage', {
-      chat_id: chatId,
+      chat_id: TELEGRAM_CHAT_ID,
       text: lines.join('\n'),
       parse_mode: 'HTML',
       disable_web_page_preview: true
@@ -92,7 +91,7 @@ module.exports = async function handler(req, res) {
 
     const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 3) : [];
     for (const attachment of attachments) {
-      await telegramFile(token, chatId, attachment, kind === 'parts' ? 'Фото к заявке на запчасть' : 'Фото/файл к сервисной заявке');
+      await telegramFile(token, attachment, kind === 'parts' ? 'Фото к заявке на запчасть' : 'Фото/файл к сервисной заявке');
     }
 
     return res.status(200).json({ ok: true });
