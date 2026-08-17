@@ -8,6 +8,7 @@
   <title>Запчасти для спецтехники — ABService</title>
   <link rel="stylesheet" href="../site.css">
   <link rel="stylesheet" href="../parts.css">
+  <link rel="stylesheet" href="../refinement.css">
 </head>
 <body>
 <header>
@@ -16,11 +17,14 @@
       <img class="brand-logo" src="../abservice-logo.svg" alt="ABService">
       <span class="brand-text">ABService<small>выездной сервис</small></span>
     </a>
-    <nav class="nav">
-      <a href="../">Сервис</a>
+    <nav class="product-nav" aria-label="Основные направления">
+      <a class="product-tab" href="../">Сервис</a>
+      <a class="product-tab active" href="./" aria-current="page">Запчасти</a>
+    </nav>
+    <nav class="nav secondary-nav" aria-label="Дополнительная навигация">
       <a href="#how">Как подбираем</a>
-      <a href="#groups">Группы запчастей</a>
-      <a href="#request">Подбор</a>
+      <a href="#groups">Группы</a>
+      <a href="#request">Контакты</a>
     </nav>
     <div class="nav-actions">
       <a class="phone" href="tel:88005554433">8 800 555-44-33</a>
