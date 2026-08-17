@@ -121,12 +121,13 @@
         attachmentsSkipped:skipped
       };
       const response=await fetch(LEAD_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(!response.ok) throw new Error('send failed');
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(result.error||`HTTP ${response.status}`);
       leadForm.reset();
       if(status) status.textContent=skipped?'Заявка отправлена в ABService. Большой файл не приложен — при необходимости мы запросим его отдельно.':'Заявка отправлена в ABService. Мы свяжемся с вами по указанному телефону.';
     }catch(err){
       console.error(err);
-      if(status) status.textContent='Не удалось отправить заявку. Позвоните нам: 8 800 555-44-33.';
+      if(status) status.textContent=`Не удалось отправить заявку. Причина: ${err.message||'неизвестная ошибка'}`;
     }finally{
       if(button){button.disabled=false;button.textContent='Отправить заявку'}
     }
