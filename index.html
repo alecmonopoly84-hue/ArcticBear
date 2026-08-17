@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b1713">
   <meta name="description" content="ABService — выездной ремонт и обслуживание дорожно-строительной и складской техники в Москве и Московской области. Диагностика, ремонт, ТО и запчасти на объекте.">
-  <meta name="abservice-build" content="2026-08-17-parts-v1">
+  <meta name="abservice-build" content="2026-08-17-visual-refinement-v1">
   <title>ABService — выездной ремонт спецтехники в Москве и МО</title>
   <link rel="stylesheet" href="site.css">
   <link rel="stylesheet" href="parts-promo.css">
+  <link rel="stylesheet" href="refinement.css">
 </head>
 <body>
 <header>
@@ -17,13 +18,14 @@
       <img class="brand-logo" src="abservice-logo.svg" alt="ABService">
       <span class="brand-text">ABService<small>выездной сервис</small></span>
     </a>
-    <nav class="nav">
-      <a href="#services">Услуги</a>
-      <a href="parts/">Запчасти</a>
+    <nav class="product-nav" aria-label="Основные направления">
+      <a class="product-tab active" href="#services" aria-current="page">Сервис</a>
+      <a class="product-tab" href="parts/">Запчасти</a>
+    </nav>
+    <nav class="nav secondary-nav" aria-label="Дополнительная навигация">
       <a href="#team">Команда</a>
-      <a href="#advantages">Почему мы</a>
-      <a href="#gallery">В работе</a>
-      <a href="#request">Заявка</a>
+      <a href="#advantages">Как работаем</a>
+      <a href="#request">Контакты</a>
     </nav>
     <div class="nav-actions">
       <a class="phone" href="tel:88005554433">8 800 555-44-33</a>
@@ -74,12 +76,12 @@
     <div class="container">
       <div class="services-head">
         <div>
-          <div class="eyebrow">Услуги</div>
-          <h2 class="section-title">Диагностика, ремонт, ТО и запчасти</h2>
+          <div class="eyebrow">Сервис</div>
+          <h2 class="section-title">Диагностика, ремонт и техническое обслуживание</h2>
         </div>
         <p class="section-lead">Берём сервисную задачу целиком: от первого обращения до проверки техники после работ.</p>
       </div>
-      <div class="service-grid">
+      <div class="service-grid service-grid-three">
         <article class="service-card">
           <img src="https://images.unsplash.com/photo-1759847527374-5b79f6afb28a?auto=format&fit=crop&w=1400&q=80" alt="Диагностика и ремонт спецтехники" loading="lazy">
           <div class="service-content">
@@ -98,22 +100,13 @@
             <a class="service-link" href="#request">Вызвать бригаду →</a>
           </div>
         </article>
-        <article class="service-card small">
+        <article class="service-card">
           <img src="https://images.unsplash.com/photo-1582280776971-087fe7cfa1bd?auto=format&fit=crop&w=1400&q=80" alt="Плановое техническое обслуживание" loading="lazy">
           <div class="service-content">
             <div class="service-num">03 · Планово</div>
             <h3>Техническое обслуживание</h3>
             <p>Проводим регламентные работы и осмотр техники там, где она эксплуатируется.</p>
             <a class="service-link" href="#request">Запланировать ТО →</a>
-          </div>
-        </article>
-        <article class="service-card small">
-          <img src="https://images.unsplash.com/photo-1772550833252-b570dcc0ec5c?auto=format&fit=crop&w=1800&q=82" alt="Запчасти с установкой" loading="lazy">
-          <div class="service-content">
-            <div class="service-num">04 · Комплексно</div>
-            <h3>Запчасти и установка</h3>
-            <p>Подбираем нужную деталь, организуем поставку и устанавливаем её в рамках одной сервисной задачи.</p>
-            <a class="service-link" href="#request">Описать задачу →</a>
           </div>
         </article>
       </div>
