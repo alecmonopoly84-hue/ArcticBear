@@ -1,5 +1,7 @@
 const ALLOWED_ORIGIN = 'https://alecmonopoly84-hue.github.io';
 const TELEGRAM_CHAT_ID = '-1004382574358';
+const MAX_ATTACHMENTS = 2;
+const MAX_ATTACHMENT_BYTES = 1_600_000;
 
 function escapeHtml(value = '') {
   return String(value)
@@ -53,12 +55,21 @@ function normalizePhone(value = '') {
   return raw;
 }
 
+function safeFileName(value = 'attachment') {
+  const cleaned = String(value)
+    .replace(/[\\/\0\r\n]/g, '_')
+    .trim()
+    .slice(0, 100);
+  return cleaned || 'attachment';
+}
+
 export function GET(request) {
   return json(request, {
     ok: true,
     service: 'ABService Telegram lead endpoint',
     configured: Boolean(process.env.TELEGRAM_BOT_TOKEN),
-    chatConfigured: true
+    chatConfigured: true,
+    attachments: true
   });
 }
 
@@ -69,7 +80,7 @@ export function OPTIONS(request) {
   });
 }
 
-async function sendTelegram(token, chatId, text) {
+async function sendTelegramMessage(token, chatId, text) {
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,6 +93,34 @@ async function sendTelegram(token, chatId, text) {
   });
   const data = await response.json();
   return { response, data };
+}
+
+async function sendTelegramAttachment(token, chatId, attachment, caption) {
+  const type = String(attachment.type || 'application/octet-stream');
+  const isImage = type.startsWith('image/');
+  const method = isImage ? 'sendPhoto' : 'sendDocument';
+  const field = isImage ? 'photo' : 'document';
+  const bytes = Buffer.from(String(attachment.data || ''), 'base64');
+
+  if (!bytes.length || bytes.length > MAX_ATTACHMENT_BYTES) {
+    return { ok: false, error: 'Attachment is empty or too large' };
+  }
+
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append(field, new Blob([bytes], { type }), safeFileName(attachment.name));
+  form.append('caption', caption);
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: 'POST',
+    body: form
+  });
+  const data = await response.json();
+
+  return {
+    ok: response.ok && Boolean(data.ok),
+    error: data.description || null
+  };
 }
 
 export async function POST(request) {
@@ -107,6 +146,9 @@ export async function POST(request) {
     const label = isParts ? 'ЗАПЧАСТИ' : 'СЕРВИС';
     const icon = isParts ? '🧩' : '🛠';
     const timestamp = formatMoscowTime();
+    const attachments = Array.isArray(body.attachments)
+      ? body.attachments.slice(0, MAX_ATTACHMENTS)
+      : [];
 
     const lines = [
       `${icon} <b>НОВАЯ ЗАЯВКА · ${label}</b>`,
@@ -120,11 +162,16 @@ export async function POST(request) {
       isParts && body.mode ? `🔧 <b>Формат:</b> ${escapeHtml(body.mode)}` : null,
       isParts && body.article ? `🏷 <b>Артикул:</b> ${escapeHtml(body.article)}` : null,
       isParts && body.part ? `📦 <b>Запчасть:</b> ${escapeHtml(body.part)}` : null,
+      attachments.length ? `📷 <b>Вложений:</b> ${attachments.length}` : null,
       '',
       `🌐 <b>Источник:</b> ${escapeHtml(isParts ? 'ABService · Запчасти' : 'ABService · Сервис')}`
     ].filter(Boolean);
 
-    const { response: telegramResponse, data: telegramData } = await sendTelegram(token, TELEGRAM_CHAT_ID, lines.join('\n'));
+    const { response: telegramResponse, data: telegramData } = await sendTelegramMessage(
+      token,
+      TELEGRAM_CHAT_ID,
+      lines.join('\n')
+    );
 
     if (!telegramResponse.ok || !telegramData.ok) {
       console.error('Telegram error:', telegramData);
@@ -134,7 +181,32 @@ export async function POST(request) {
       }, 502);
     }
 
-    return json(request, { ok: true });
+    let attachmentsSent = 0;
+    const attachmentErrors = [];
+
+    for (let index = 0; index < attachments.length; index += 1) {
+      const attachment = attachments[index];
+      const result = await sendTelegramAttachment(
+        token,
+        TELEGRAM_CHAT_ID,
+        attachment,
+        `📎 ${label} · вложение ${index + 1}/${attachments.length} · ${phone}`
+      );
+
+      if (result.ok) {
+        attachmentsSent += 1;
+      } else {
+        attachmentErrors.push(result.error || `Вложение ${index + 1} не отправлено`);
+        console.error('Telegram attachment error:', result.error);
+      }
+    }
+
+    return json(request, {
+      ok: true,
+      attachmentsRequested: attachments.length,
+      attachmentsSent,
+      attachmentErrors
+    });
   } catch (error) {
     console.error('Lead endpoint error:', error);
     return json(request, { ok: false, error: 'Unable to send lead' }, 500);
