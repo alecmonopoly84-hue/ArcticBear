@@ -27,7 +27,19 @@ jobs:
           mkdir -p _site/parts _site/media
           cp index.html site.css site.js parts-promo.css parts.css parts.js abservice-logo.svg _site/
           cp parts/index.html _site/parts/index.html
-          cp media/*.jpg _site/media/
+
+          cat image-src-v3/hero.*.b64 | tr -d '\n' | base64 -d > _site/media/hero-abservice.avif
+          cat image-src-v3/diag.*.b64 | tr -d '\n' | base64 -d > _site/media/diag-repair-abservice.avif
+          cat image-src-v3/field.*.b64 | tr -d '\n' | base64 -d > _site/media/field-service-abservice.avif
+          cat image-src-v3/team.*.b64 | tr -d '\n' | base64 -d > _site/media/team-abservice.avif
+          cat image-src-v3/closeup.*.b64 | tr -d '\n' | base64 -d > _site/media/closeup-service-abservice.avif
+
+          test "$(stat -c%s _site/media/hero-abservice.avif)" -gt 10000
+          test "$(stat -c%s _site/media/diag-repair-abservice.avif)" -gt 10000
+          test "$(stat -c%s _site/media/field-service-abservice.avif)" -gt 10000
+          test "$(stat -c%s _site/media/team-abservice.avif)" -gt 10000
+          test "$(stat -c%s _site/media/closeup-service-abservice.avif)" -gt 10000
+          ls -lh _site/media
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
