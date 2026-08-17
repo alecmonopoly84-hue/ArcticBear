@@ -1,0 +1,61 @@
+/* Final visual refinement: product navigation, quieter accents, service hierarchy */
+
+/* Header: two primary business directions */
+.nav-wrap{gap:18px}
+.product-nav{display:flex;align-items:center;gap:8px;margin-left:22px;white-space:nowrap}
+.product-tab{min-height:42px;padding:0 18px;border:1px solid var(--accent);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--accent-dark);background:transparent;transition:.18s ease}
+.product-tab:hover{background:var(--accent-soft);color:var(--accent-dark)}
+.product-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(224,111,0,.14)}
+.secondary-nav{margin-left:auto;gap:18px;font-size:12px;font-weight:720;color:var(--muted)}
+.secondary-nav a{transition:color .18s ease}
+.secondary-nav a:hover{color:var(--ink)}
+.nav-actions{gap:12px}
+
+/* Orange is reserved for actions and active states */
+.eyebrow{color:var(--muted)}
+.eyebrow.light{color:rgba(255,255,255,.58)}
+.service-num{color:rgba(255,255,255,.62)}
+.service-link{color:#fff;border-bottom-color:rgba(255,255,255,.5)}
+.service-link:hover{color:var(--accent-light);border-bottom-color:var(--accent-light)}
+.adv b{color:var(--muted)}
+.gallery-cap{border:0}
+
+/* More restrained hero typography */
+.hero h1{font-size:clamp(54px,6.6vw,88px);line-height:.92;letter-spacing:-.058em;max-width:760px}
+
+/* Three clear service directions */
+.service-grid.service-grid-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.service-grid-three .service-card,.service-grid-three .service-card.small{min-height:500px}
+.service-grid-three .service-card h3{font-size:32px}
+.service-grid-three .service-content{padding:30px}
+
+/* Parts becomes a separate business chapter */
+.parts-promo{padding:72px 0;background:var(--accent-soft);border-top:1px solid #f1ddc5;border-bottom:1px solid #f1ddc5}
+.parts-promo-grid{border-top:0;padding-top:0;align-items:center}
+.parts-promo-side{border-top-color:rgba(11,23,19,.16)}
+.parts-promo-item{border-bottom-color:rgba(11,23,19,.14)}
+.parts-inline-link{transition:color .18s ease,border-color .18s ease}
+.parts-inline-link:hover{color:var(--accent-dark);border-color:var(--accent-dark)}
+
+@media(max-width:1120px){
+  .secondary-nav{display:none}
+  .product-nav{margin-left:auto}
+}
+@media(max-width:1020px){
+  .service-grid.service-grid-three{grid-template-columns:1fr 1fr}
+  .service-grid-three .service-card:last-child{grid-column:1/-1;min-height:420px}
+}
+@media(max-width:700px){
+  .nav-wrap{min-height:auto;flex-wrap:wrap;padding:8px 0;gap:8px 10px}
+  .brand{margin-right:auto}
+  .brand-text small{display:none}
+  .nav-actions{margin-left:auto}
+  .nav-actions .phone{font-size:11px}
+  .product-nav{order:3;width:100%;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .product-tab{min-height:40px;padding:0 12px;border-radius:10px}
+  .hero h1{font-size:48px;line-height:.94;letter-spacing:-.05em}
+  .service-grid.service-grid-three{grid-template-columns:1fr}
+  .service-grid-three .service-card:last-child{grid-column:auto;min-height:430px}
+  .service-grid-three .service-card,.service-grid-three .service-card.small{min-height:430px}
+  .parts-promo{padding:56px 0}
+}
