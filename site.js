@@ -59,25 +59,25 @@
   });
 
   const hero=document.querySelector('.hero-photo');
-  if(hero) hero.style.backgroundImage='linear-gradient(180deg,rgba(11,23,19,.02),rgba(11,23,19,.18)),url("media/hero-abservice.jpg")';
+  if(hero) hero.style.backgroundImage='linear-gradient(180deg,rgba(11,23,19,.02),rgba(11,23,19,.18)),url("media/hero-abservice.avif")';
 
   const servicePhotos=[...document.querySelectorAll('.service-card img')];
   const serviceSources=[
-    'media/diag-repair-abservice.jpg',
-    'media/field-service-abservice.jpg',
-    'media/closeup-service-abservice.jpg',
-    'media/closeup-service-abservice.jpg'
+    'media/diag-repair-abservice.avif',
+    'media/field-service-abservice.avif',
+    'media/closeup-service-abservice.avif',
+    'media/closeup-service-abservice.avif'
   ];
   servicePhotos.forEach((img,i)=>{if(serviceSources[i]) img.src=serviceSources[i];});
 
   const team=document.querySelector('.team-photo');
-  if(team) team.style.backgroundImage='url("media/team-abservice.jpg")';
+  if(team) team.style.backgroundImage='url("media/team-abservice.avif")';
 
   const galleryPhotos=[...document.querySelectorAll('.gallery-item img')];
   const gallerySources=[
-    'media/field-service-abservice.jpg',
-    'media/closeup-service-abservice.jpg',
-    'media/team-abservice.jpg'
+    'media/field-service-abservice.avif',
+    'media/closeup-service-abservice.avif',
+    'media/team-abservice.avif'
   ];
   galleryPhotos.forEach((img,i)=>{if(gallerySources[i]) img.src=gallerySources[i];});
 })();
