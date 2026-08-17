@@ -1,5 +1,5 @@
 (()=>{
-  const LEAD_API_URL='https://abservice-leads.vercel.app/api/lead';
+  const LEAD_API_URL='https://abservice-leads-v2.vercel.app/api/lead';
 
   const nav=document.querySelector('.nav');
   const wrap=document.querySelector('.nav-wrap');
