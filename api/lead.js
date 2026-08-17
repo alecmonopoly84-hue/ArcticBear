@@ -32,6 +32,27 @@ function json(request, body, status = 200) {
   });
 }
 
+function formatMoscowTime(date = new Date()) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date).replace(',', ' ·') + ' МСК';
+}
+
+function normalizePhone(value = '') {
+  const raw = String(value).trim();
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('8')) return '+7' + digits.slice(1);
+  if (digits.length === 11 && digits.startsWith('7')) return '+' + digits;
+  if (raw.startsWith('+') && digits.length >= 10) return '+' + digits;
+  return raw;
+}
+
 export function GET(request) {
   return json(request, {
     ok: true,
@@ -76,27 +97,31 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const phone = String(body.phone || '').trim();
-    if (phone.length < 5) {
+    const phone = normalizePhone(body.phone || '');
+    if (phone.replace(/\D/g, '').length < 5) {
       return json(request, { ok: false, error: 'Phone is required' }, 400);
     }
 
     const kind = body.kind === 'parts' ? 'parts' : 'service';
-    const title = kind === 'parts' ? '🧩 Новая заявка на запчасть' : '🛠 Новая заявка на сервис';
+    const isParts = kind === 'parts';
+    const label = isParts ? 'ЗАПЧАСТИ' : 'СЕРВИС';
+    const icon = isParts ? '🧩' : '🛠';
+    const timestamp = formatMoscowTime();
 
     const lines = [
-      `<b>${title}</b>`,
+      `${icon} <b>НОВАЯ ЗАЯВКА · ${label}</b>`,
+      `<i>ABService · ${timestamp}</i>`,
       '',
-      body.name ? `<b>Имя:</b> ${escapeHtml(body.name)}` : null,
-      `<b>Телефон:</b> ${escapeHtml(phone)}`,
-      body.machine ? `<b>Техника:</b> ${escapeHtml(body.machine)}` : null,
-      kind === 'service' && body.location ? `<b>Где техника:</b> ${escapeHtml(body.location)}` : null,
-      kind === 'service' && body.issue ? `<b>Проблема:</b> ${escapeHtml(body.issue)}` : null,
-      kind === 'parts' && body.mode ? `<b>Тип:</b> ${escapeHtml(body.mode)}` : null,
-      kind === 'parts' && body.article ? `<b>Артикул:</b> ${escapeHtml(body.article)}` : null,
-      kind === 'parts' && body.part ? `<b>Запчасть:</b> ${escapeHtml(body.part)}` : null,
+      body.name ? `👤 <b>Клиент:</b> ${escapeHtml(body.name)}` : null,
+      `📞 <b>Телефон:</b> ${escapeHtml(phone)}`,
+      body.machine ? `🚜 <b>Техника:</b> ${escapeHtml(body.machine)}` : null,
+      !isParts && body.location ? `📍 <b>Локация:</b> ${escapeHtml(body.location)}` : null,
+      !isParts && body.issue ? `⚠️ <b>Проблема:</b> ${escapeHtml(body.issue)}` : null,
+      isParts && body.mode ? `🔧 <b>Формат:</b> ${escapeHtml(body.mode)}` : null,
+      isParts && body.article ? `🏷 <b>Артикул:</b> ${escapeHtml(body.article)}` : null,
+      isParts && body.part ? `📦 <b>Запчасть:</b> ${escapeHtml(body.part)}` : null,
       '',
-      `<b>Источник:</b> ${escapeHtml(body.source || 'ABService')}`
+      `🌐 <b>Источник:</b> ${escapeHtml(isParts ? 'ABService · Запчасти' : 'ABService · Сервис')}`
     ].filter(Boolean);
 
     const { response: telegramResponse, data: telegramData } = await sendTelegram(token, TELEGRAM_CHAT_ID, lines.join('\n'));
