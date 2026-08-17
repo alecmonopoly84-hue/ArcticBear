@@ -1,5 +1,5 @@
 (()=>{
-  const LEAD_API_URL=''; // Filled after the Vercel endpoint is deployed.
+  const LEAD_API_URL='https://abservice-leads.vercel.app/api/lead';
 
   const nav=document.querySelector('.nav');
   const wrap=document.querySelector('.nav-wrap');
