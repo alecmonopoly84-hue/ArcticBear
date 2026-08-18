@@ -1,5 +1,8 @@
 (()=>{
   const LEAD_API_URL='https://abservice-leads-v2.vercel.app/api/lead';
+  const CRM_CALLBACK_URL='https://abservice-leads-v2.vercel.app/api/callback-v3';
+  const activateCrmWebhook=()=>fetch(CRM_CALLBACK_URL,{method:'GET'}).catch(()=>{});
+  activateCrmWebhook();
 
   const nav=document.querySelector('.nav');
   const wrap=document.querySelector('.nav-wrap');
@@ -138,6 +141,7 @@
       };
       const response=await fetch(LEAD_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(!response.ok) throw new Error('send failed');
+      activateCrmWebhook();
       form.reset();
       setMode('part');
       if(status) status.textContent=skipped?'Запрос отправлен в ABService. Большое фото не приложено — при необходимости мы запросим его отдельно.':'Запрос отправлен в ABService. Мы свяжемся с вами по указанному телефону.';
