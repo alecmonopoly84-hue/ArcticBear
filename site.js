@@ -1,6 +1,6 @@
 (()=>{
   const LEAD_API_URL='https://abservice-leads-v2.vercel.app/api/lead';
-  const CRM_CALLBACK_URL='https://abservice-leads-v2.vercel.app/api/callback-v3';
+  const CRM_CALLBACK_URL=LEAD_API_URL;
   const activateCrmWebhook=()=>fetch(CRM_CALLBACK_URL,{method:'GET'}).catch(()=>{});
   activateCrmWebhook();
 
