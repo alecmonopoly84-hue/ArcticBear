@@ -1,5 +1,8 @@
 (()=>{
   const LEAD_API_URL='https://abservice-leads-v2.vercel.app/api/lead';
+  const CRM_CALLBACK_URL='https://abservice-leads-v2.vercel.app/api/callback-v3';
+  const activateCrmWebhook=()=>fetch(CRM_CALLBACK_URL,{method:'GET'}).catch(()=>{});
+  activateCrmWebhook();
 
   const nav=document.querySelector('.nav');
   const wrap=document.querySelector('.nav-wrap');
@@ -123,6 +126,7 @@
       const response=await fetch(LEAD_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const result=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(result.error||`HTTP ${response.status}`);
+      activateCrmWebhook();
       leadForm.reset();
       if(status) status.textContent=skipped?'Заявка отправлена в ABService. Большой файл не приложен — при необходимости мы запросим его отдельно.':'Заявка отправлена в ABService. Мы свяжемся с вами по указанному телефону.';
     }catch(err){
